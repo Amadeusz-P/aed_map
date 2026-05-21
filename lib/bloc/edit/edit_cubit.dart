@@ -79,6 +79,7 @@ class EditCubit extends Cubit<EditState> {
         defibrillator: defibrillator,
         access: defibrillator.access ?? 'yes',
         indoor: defibrillator.indoor ?? 'no',
+        level: defibrillator.level ?? '',
         description: defibrillator.description ?? '',
         originalImage: defibrillator.image,
         pendingChanges: state.pendingChanges));
@@ -97,6 +98,7 @@ class EditCubit extends Cubit<EditState> {
         defibrillator: defibrillator,
         access: defibrillator.access ?? 'yes',
         indoor: defibrillator.indoor ?? 'no',
+        level: defibrillator.level ?? '',
         description: defibrillator.description ?? '',
         originalImage: defibrillator.image,
         pendingChanges: state.pendingChanges));
@@ -140,6 +142,14 @@ class EditCubit extends Cubit<EditState> {
       var contents = value ? 'yes' : 'no';
       s.defibrillator.indoor = contents;
       emit(s.copyWith(defibrillator: s.defibrillator, indoor: contents));
+    }
+  }
+
+  void editLevel(String value) {
+    var s = state;
+    if (s is EditInProgress) {
+      s.defibrillator.level = value;
+      emit(s.copyWith(defibrillator: s.defibrillator, level: value));
     }
   }
 

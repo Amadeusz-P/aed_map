@@ -147,6 +147,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get chooseAccess => 'Wybierz dostępność';
 
   @override
+  String get level => 'Piętro';
+
+  @override
+  String get enterLevel => 'Wpisz piętro';
+
+  @override
   String get editOpeningHours => 'Edytuj godziny otwarcia';
 
   @override

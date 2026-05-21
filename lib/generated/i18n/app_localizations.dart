@@ -370,6 +370,18 @@ abstract class AppLocalizations {
   /// **'Choose access'**
   String get chooseAccess;
 
+  /// No description provided for @level.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get level;
+
+  /// No description provided for @enterLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter level'**
+  String get enterLevel;
+
   /// No description provided for @editOpeningHours.
   ///
   /// In en, this message translates to:

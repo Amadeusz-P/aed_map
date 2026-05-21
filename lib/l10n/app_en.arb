@@ -183,5 +183,7 @@
   "reportPhotoConfirm": "Are you sure you want to report this photo as inappropriate?",
   "photoReported": "Photo has been reported",
   "photoUploaded": "Photo saved successfully",
-  "photoUploadFailed": "Failed to upload photo"
+  "photoUploadFailed": "Failed to upload photo",
+  "level": "Floor (Level)",
+  "enterLevel": "Enter floor"
 }

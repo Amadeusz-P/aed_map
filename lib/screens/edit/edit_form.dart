@@ -132,6 +132,15 @@ class EditForm extends StatelessWidget {
             title: Text(appLocalizations.insideBuilding),
           ),
           SettingsTile(
+            leading: const Icon(CupertinoIcons.building_2_fill),
+            title: TextFormField(
+              initialValue: state.defibrillator.level,
+              onChanged: context.read<EditCubit>().editLevel,
+              decoration: InputDecoration.collapsed(
+                  hintText: appLocalizations.enterLevel),
+            ),
+          ),
+          SettingsTile(
             leading: const Icon(CupertinoIcons.person_2),
             title: TextFormField(
               initialValue: state.defibrillator.operator,

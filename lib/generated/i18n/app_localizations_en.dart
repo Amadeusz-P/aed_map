@@ -147,6 +147,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseAccess => 'Choose access';
 
   @override
+  String get level => 'Floor (Level)';
+
+  @override
+  String get enterLevel => 'Enter floor';
+
+  @override
   String get editOpeningHours => 'Edit opening hours';
 
   @override

@@ -12,6 +12,7 @@ class Defibrillator {
   String? description;
   int id;
   String? indoor;
+  String? level;
   String? operator;
   String? phone;
   int? distance = 0;
@@ -25,6 +26,7 @@ class Defibrillator {
       required this.id,
       this.description,
       this.indoor,
+      this.level,
       this.operator,
       this.phone,
       this.openingHours,
@@ -122,6 +124,10 @@ class Defibrillator {
         }
         builder
             .element('tag', attributes: {'k': 'indoor', 'v': indoor ?? 'no'});
+        if (level != null && level.toString().isNotEmpty) {
+          builder.element('tag',
+              attributes: {'k': 'level', 'v': level ?? ''});
+        }
         if (openingHours != null && openingHours.toString().isNotEmpty) {
           builder.element('tag',
               attributes: {'k': 'opening_hours', 'v': openingHours ?? ''});
@@ -140,6 +146,7 @@ class Defibrillator {
                   'operator',
                   'opening_hours',
                   'indoor',
+                  'level',
                   'emergency',
                   'access',
                   'defibrillator:location',
@@ -159,6 +166,7 @@ class Defibrillator {
     String? description,
     int? id,
     String? indoor,
+    String? level,
     String? operator,
     String? phone,
     int? distance,
@@ -174,6 +182,7 @@ class Defibrillator {
       description: description ?? this.description,
       id: id ?? this.id,
       indoor: indoor ?? this.indoor,
+      level: level ?? this.level,
       operator: operator ?? this.operator,
       phone: phone ?? this.phone,
       openingHours: openingHours ?? this.openingHours,
@@ -186,6 +195,7 @@ class Defibrillator {
   static bool tagsEqual(Defibrillator a, Defibrillator b) {
     return a.description == b.description &&
         a.indoor == b.indoor &&
+        a.level == b.level &&
         a.operator == b.operator &&
         a.phone == b.phone &&
         a.openingHours == b.openingHours &&
@@ -200,6 +210,7 @@ class Defibrillator {
       'aed_latitude': location.latitude,
       'aed_longitude': location.longitude,
       'aed_indoor': indoor,
+      'aed_level': level,
       'aed_operator': operator,
       'aed_phone': phone,
       'aed_distance': distance,
