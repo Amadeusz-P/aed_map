@@ -26,6 +26,7 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final PanelController panel = PanelController();
   double _floatingPanelPosition = 0;
+  bool _isMapLoadingOverlay = true;
 
   @override
   void initState() {
@@ -86,10 +87,23 @@ class _MapScreenState extends State<MapScreen> {
       },
       child: BlocBuilder<PointsCubit, PointsState>(builder: (context, state) {
         if (state is PointsLoadInProgress) {
-          return Center(
-              child: CircularProgressIndicator(color: Colors.green.shade400));
+          return Container(
+            color: CupertinoColors.systemBackground.resolveFrom(context),
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.green.shade400),
+            ),
+          );
         }
         if (state is PointsLoadSuccess) {
+          if (_isMapLoadingOverlay) {
+            Future.delayed(const Duration(milliseconds: 1500), () {
+              if (mounted) {
+                setState(() {
+                  _isMapLoadingOverlay = false;
+                });
+              }
+            });
+          }
           return Stack(
             children: [
               AbsorbPointer(
@@ -121,10 +135,23 @@ class _MapScreenState extends State<MapScreen> {
               if (state.refreshing)
                 Container(
                   color: CupertinoColors.systemBackground.resolveFrom(context).withOpacity(0.5),
-                  child: Center(
+                  child: const Center(
                     child: CupertinoActivityIndicator(radius: 20),
                   ),
                 ),
+              IgnorePointer(
+                ignoring: !_isMapLoadingOverlay,
+                child: AnimatedOpacity(
+                  opacity: _isMapLoadingOverlay ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  child: Container(
+                    color: CupertinoColors.systemBackground.resolveFrom(context),
+                    child: Center(
+                      child: CircularProgressIndicator(color: Colors.green.shade400),
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         }
