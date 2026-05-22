@@ -122,19 +122,25 @@ class PointsRepository {
     _lastUserLocation = userLocation;
 
     double cosLat = math.cos(mapCenter.latitude * math.pi / 180);
-    var mappedDefibrillators = _cachedDefibrillators!.map((defibrillator) {
+    double latDiff = 0.5;
+    double lonDiff = 0.5 / cosLat;
+
+    List<(Defibrillator, double)> mappedDefibrillators = [];
+    for (var defibrillator in _cachedDefibrillators!) {
+      double dx = (defibrillator.location.longitude - mapCenter.longitude) * cosLat;
+      double dy = defibrillator.location.latitude - mapCenter.latitude;
+
+      if (dy.abs() > latDiff || dx.abs() > lonDiff) continue;
+
       if (userLocationChanged || defibrillator.distance == null) {
         const Distance distance = Distance(calculator: Haversine());
         defibrillator.distance =
             distance(userLocation, defibrillator.location).ceil();
       }
       
-      double dx = (defibrillator.location.longitude - mapCenter.longitude) * cosLat;
-      double dy = defibrillator.location.latitude - mapCenter.latitude;
       double sqDist = dx * dx + dy * dy;
-      
-      return (defibrillator, sqDist);
-    }).toList();
+      mappedDefibrillators.add((defibrillator, sqDist));
+    }
     mappedDefibrillators.sort((a, b) => a.$2.compareTo(b.$2));
     final defibrillatorsCount = mappedDefibrillators.length;
     
@@ -150,7 +156,7 @@ class PointsRepository {
     return (
       mappedDefibrillators.map((e) => e.$1).take(visiblePointsCount).toList(),
       defibrillatorsCount,
-      closestToUser ?? mappedDefibrillators.first.$1
+      closestToUser ?? (mappedDefibrillators.isNotEmpty ? mappedDefibrillators.first.$1 : _cachedDefibrillators!.first)
     );
   }
 
@@ -475,21 +481,14 @@ List<Defibrillator> _parseGeoJson(Map<String, dynamic> params) {
 
   for (var row in jsonList) {
     var id = row['properties'][idLabel];
-    var descriptions = Map<String, dynamic>.from(row['properties'])
-        .entries
-        .where((a) => a.key.startsWith('defibrillator:location'))
-        .toList();
-    var exactMatch = descriptions.where((a) => a.key == 'defibrillator:location:$systemLang');
-    String? finalDescription;
-    if (exactMatch.isNotEmpty) {
-      finalDescription = exactMatch.first.value;
-    } else {
-      var defaultMatch = descriptions.where((a) => a.key == 'defibrillator:location');
-      if (defaultMatch.isNotEmpty) {
-        finalDescription = defaultMatch.first.value;
-      } else {
-        descriptions.sort((a, b) => a.key.length.compareTo(b.key.length));
-        finalDescription = descriptions.firstOrNull?.value;
+    String? finalDescription = row['properties']['defibrillator:location:$systemLang']?.toString();
+    finalDescription ??= row['properties']['defibrillator:location']?.toString();
+    if (finalDescription == null) {
+      for (var key in (row['properties'] as Map<String, dynamic>).keys) {
+        if (key.startsWith('defibrillator:location')) {
+          finalDescription = row['properties'][key]?.toString();
+          break;
+        }
       }
     }
     defibrillators.add(Defibrillator(
