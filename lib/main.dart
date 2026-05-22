@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:aed_map/bloc/settings/settings_cubit.dart';
 import 'package:aed_map/bloc/edit/edit_cubit.dart';
 import 'package:aed_map/bloc/edit/edit_state.dart';
 import 'package:aed_map/bloc/feedback/feedback_cubit.dart';
@@ -7,6 +8,7 @@ import 'package:aed_map/bloc/location/location_cubit.dart';
 import 'package:aed_map/bloc/network_status/network_status_cubit.dart';
 import 'package:aed_map/bloc/panel/panel_cubit.dart';
 import 'package:aed_map/bloc/points/points_cubit.dart';
+import 'package:aed_map/bloc/search/search_cubit.dart';
 import 'package:aed_map/bloc/routing/routing_cubit.dart';
 import 'package:aed_map/repositories/feedback_repository.dart';
 import 'package:aed_map/repositories/geolocation_repository.dart';
@@ -91,6 +93,26 @@ class _AppState extends State<App> {
         }
       });
     });
+
+    settingsCubit = SettingsCubit()..load();
+
+    editCubit = EditCubit(
+      pointsRepository: pointsRepository,
+      geolocationRepository: geolocationRepository,
+      pendingChangesRepository: pendingChangesRepository,
+      userCreatedDefibrillatorRepository: userCreatedDefibrillatorRepository,
+    );
+
+    pointsCubit = PointsCubit(
+        pointsRepository: pointsRepository,
+        geolocationRepository: geolocationRepository,
+        editCubit: editCubit,
+        settingsCubit: settingsCubit)
+      ..load();
+
+    routingCubit = RoutingCubit(
+        geolocationRepository: geolocationRepository,
+        routingRepository: routingRepository);
   }
 
   final GeolocationRepository geolocationRepository = GeolocationRepository();
@@ -100,6 +122,11 @@ class _AppState extends State<App> {
   final PendingChangesRepository pendingChangesRepository = PendingChangesRepository();
   final UserCreatedDefibrillatorRepository userCreatedDefibrillatorRepository =
       UserCreatedDefibrillatorRepository();
+
+  late final SettingsCubit settingsCubit;
+  late final EditCubit editCubit;
+  late final PointsCubit pointsCubit;
+  late final RoutingCubit routingCubit;
 
   Widget home = Scaffold(
       body: Center(
@@ -115,51 +142,78 @@ class _AppState extends State<App> {
       DeviceOrientation.portraitDown,
     ]);
 
-    final editCubit = EditCubit(
-      pointsRepository: pointsRepository,
-      geolocationRepository: geolocationRepository,
-      pendingChangesRepository: pendingChangesRepository,
-      userCreatedDefibrillatorRepository: userCreatedDefibrillatorRepository,
-    );
-
-    return CupertinoApp(
-      theme: const CupertinoThemeData(brightness: null),
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: List.from(AppLocalizations.supportedLocales)
-        ..sort((a, b) =>
-            const Locale('en').languageCode.compareTo(a.languageCode)),
-      home: MultiBlocProvider(
-        providers: [
-          BlocProvider<EditCubit>.value(value: editCubit..loadPendingChanges()),
-          BlocProvider<PointsCubit>(
-            create: (BuildContext context) => PointsCubit(
-                pointsRepository: pointsRepository,
-                geolocationRepository: geolocationRepository,
-                editCubit: editCubit)
-              ..load(),
-          ),
-          BlocProvider<RoutingCubit>(
-            create: (BuildContext context) => RoutingCubit(
-                geolocationRepository: geolocationRepository,
-                routingRepository: routingRepository),
-          ),
-          BlocProvider<LocationCubit>(
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<SettingsCubit>.value(value: settingsCubit),
+        BlocProvider<EditCubit>.value(value: editCubit..loadPendingChanges()),
+        BlocProvider<PointsCubit>.value(value: pointsCubit),
+        BlocProvider<RoutingCubit>.value(value: routingCubit),
+        BlocProvider<SearchCubit>(
+          create: (BuildContext context) => SearchCubit(),
+        ),
+        BlocProvider<LocationCubit>(
+          create: (BuildContext context) =>
+              LocationCubit(geolocationRepository: geolocationRepository)
+                ..locate(),
+        ),
+        BlocProvider<PanelCubit>(
+          create: (BuildContext context) => PanelCubit(),
+        ),
+        BlocProvider<NetworkStatusCubit>(
+            create: (BuildContext context) => NetworkStatusCubit()),
+        BlocProvider<FeedbackCubit>(
             create: (BuildContext context) =>
-                LocationCubit(geolocationRepository: geolocationRepository)
-                  ..locate(),
+                FeedbackCubit(feedbackRepository: feedbackRepository)),
+      ],
+      child: BlocBuilder<SettingsCubit, SettingsState>(
+          builder: (context, settingsState) {
+        final brightness = settingsState.themeMode == ThemeMode.light
+            ? Brightness.light
+            : settingsState.themeMode == ThemeMode.dark
+                ? Brightness.dark
+                : null; // Let CupertinoApp read the system platformBrightness
+
+        return CupertinoApp(
+          theme: CupertinoThemeData(
+            brightness: brightness,
           ),
-          BlocProvider<PanelCubit>(
-            create: (BuildContext context) => PanelCubit(),
-          ),
-          BlocProvider<NetworkStatusCubit>(
-              create: (BuildContext context) => NetworkStatusCubit()),
-          BlocProvider<FeedbackCubit>(
-              create: (BuildContext context) =>
-                  FeedbackCubit(feedbackRepository: feedbackRepository)),
-        ],
-        child: widget.skipOnboarding ? Home() : home,
-      ),
+          builder: (context, child) {
+            // Override MediaQuery so that plugins relying on platformBrightness
+            // (like settings_ui) see the brightness we want.
+            final effectiveBrightness = brightness ?? MediaQuery.platformBrightnessOf(context);
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(platformBrightness: effectiveBrightness),
+              child: child!,
+            );
+          },
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: List.from(AppLocalizations.supportedLocales)
+            ..sort((a, b) =>
+                const Locale('en').languageCode.compareTo(a.languageCode)),
+          home: BlocListener<EditCubit, EditState>(
+              listenWhen: (previous, current) =>
+                  previous is EditReady &&
+                  current is EditInProgress &&
+                  current.photoStatus == PhotoStatus.idle,
+              listener: (BuildContext context, state) async {
+                if (state is EditInProgress) {
+                  var editCubit = context.read<EditCubit>();
+                  var pointsCubit = context.read<PointsCubit>();
+                  await Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => MultiBlocProvider(providers: [
+                        BlocProvider<EditCubit>.value(value: editCubit),
+                        BlocProvider<PointsCubit>.value(value: pointsCubit),
+                      ], child: const EditForm()),
+                    ),
+                  );
+                  editCubit.cancel();
+                }
+              },
+              child: widget.skipOnboarding ? const Home() : home),
+        );
+      }),
     );
   }
 }
@@ -169,26 +223,6 @@ class Home extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EditCubit, EditState>(
-        listenWhen: (previous, current) =>
-            previous is EditReady &&
-            current is EditInProgress &&
-            current.photoStatus == PhotoStatus.idle,
-        listener: (BuildContext context, state) async {
-          if (state is EditInProgress) {
-            var editCubit = context.read<EditCubit>();
-            var pointsCubit = context.read<PointsCubit>();
-            await Navigator.of(context).push(
-              CupertinoPageRoute(
-                builder: (context) => MultiBlocProvider(providers: [
-                  BlocProvider<EditCubit>.value(value: editCubit),
-                  BlocProvider<PointsCubit>.value(value: pointsCubit),
-                ], child: const EditForm()),
-              ),
-            );
-            editCubit.cancel();
-          }
-        },
-        child: const MapScreen());
+    return const MapScreen();
   }
 }

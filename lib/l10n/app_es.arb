@@ -180,5 +180,15 @@
   "reportPhotoConfirm": "¿Estás seguro de que deseas reportar esta foto como inapropiada?",
   "photoReported": "La foto ha sido reportada",
   "photoUploaded": "Foto guardada correctamente",
-  "photoUploadFailed": "No se pudo subir la foto"
+  "photoUploadFailed": "No se pudo subir la foto",
+  "showMore": "Mostrar más",
+  "showLess": "Mostrar menos",
+  "theme": "Tema",
+  "themeLight": "Claro",
+  "themeDark": "Oscuro",
+  "themeSystem": "Sistema",
+  "language": "Idioma",
+  "personalization": "Personalización",
+  "searchLocationPlaceholder": "Buscar una ciudad o dirección...",
+  "searchNoResults": "No se encontraron resultados"
 }

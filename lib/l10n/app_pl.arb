@@ -1,5 +1,5 @@
 {
-  "heading": "Mapa AED",
+  "heading": "Informacje",
   "subheading": "{count} AED dostępnych",
   "@subheading": {
     "placeholders": {
@@ -19,8 +19,10 @@
   "contact": "Kontakt",
   "noData": "Brak danych",
   "navigate": "Nawiguj",
+  "showMore": "Pokaż więcej",
+  "showLess": "Pokaż mniej",
   "chooseMapApp": "Wybierz aplikację do map",
-  "about": "Dane o lokalizacjach AED pochodzą z projektu openaedmap.org",
+  "about": "O aplikacji",
   "defibrillator": "Defibrylator AED",
   "runDistance": "~{minutes} minut biegiem ({meters}m)",
   "@runDistance": {
@@ -64,6 +66,7 @@
   "imageOfDefibrillator": "Zdjęcie defibrylatora",
   "save": "Zapisz",
   "editDefibrillator": "Edytuj defibrylator",
+  "enterNote": "Wpisz opis / dodatkowe informacje",
   "information": "Informacje",
   "enterDescription": "Wpisz opis lokalizacji",
   "enterOperator": "Wpisz operatora",
@@ -106,17 +109,14 @@
   "minutes": "minut",
   "seconds": "sekund",
   "meters": "metrów",
-  "heading": "Informacje",
   "datasetHeading": "Baza punktów",
   "datasetDescription": "Baza punktów AED pochodzi z projektu openaedmap.org",
   "defibrillatorsInDataset": "Defibrylatory w bazie",
   "defibrillatorsWithin5km": "Defibrylatory w promieniu 5km",
   "defibrillatorsWithImages": "Punkty ze zdjęciami",
-  "about": "O aplikacji",
   "version": "Wersja",
   "website": "Strona projektu",
   "author": "Autor",
-  "contact": "Kontakt",
   "understand": "Rozumiem",
   "dataSource": "Pochodzenie danych",
   "dataSourceDescription": "Dane o lokalizacji defibrylatorów pochodzą z OpenStreetMap. Ich jakość może się różnić. Autor nie ponosi odpowiedzialności za poprawność danych. Zachęcamy do współtworzenia bazy na openaedmap.org",
@@ -185,5 +185,13 @@
   "photoUploaded": "Zdjęcie zostało zapisane",
   "photoUploadFailed": "Nie udało się przesłać zdjęcia",
   "level": "Piętro",
-  "enterLevel": "Wpisz piętro"
+  "enterLevel": "Wpisz piętro",
+  "theme": "Motyw",
+  "themeLight": "Jasny",
+  "themeDark": "Ciemny",
+  "themeSystem": "Systemowy",
+  "language": "Język",
+  "personalization": "Personalizacja",
+  "searchLocationPlaceholder": "Szukaj miejscowości lub adresu...",
+  "searchNoResults": "Brak wyników"
 }

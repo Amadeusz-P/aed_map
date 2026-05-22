@@ -47,6 +47,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get navigate => 'Nawiguj';
 
   @override
+  String get showMore => 'Pokaż więcej';
+
+  @override
+  String get showLess => 'Pokaż mniej';
+
+  @override
   String get chooseMapApp => 'Wybierz aplikację do map';
 
   @override
@@ -126,6 +132,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get editDefibrillator => 'Edytuj defibrylator';
 
   @override
+  String get enterNote => 'Wpisz opis / dodatkowe informacje';
+
+  @override
   String get information => 'Informacje';
 
   @override
@@ -145,12 +154,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get chooseAccess => 'Wybierz dostępność';
-
-  @override
-  String get level => 'Piętro';
-
-  @override
-  String get enterLevel => 'Wpisz piętro';
 
   @override
   String get editOpeningHours => 'Edytuj godziny otwarcia';
@@ -460,4 +463,34 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get photoUploadFailed => 'Nie udało się przesłać zdjęcia';
+
+  @override
+  String get level => 'Piętro';
+
+  @override
+  String get enterLevel => 'Wpisz piętro';
+
+  @override
+  String get theme => 'Motyw';
+
+  @override
+  String get themeLight => 'Jasny';
+
+  @override
+  String get themeDark => 'Ciemny';
+
+  @override
+  String get themeSystem => 'Systemowy';
+
+  @override
+  String get language => 'Język';
+
+  @override
+  String get personalization => 'Personalizacja';
+
+  @override
+  String get searchLocationPlaceholder => 'Szukaj miejscowości lub adresu...';
+
+  @override
+  String get searchNoResults => 'Brak wyników';
 }

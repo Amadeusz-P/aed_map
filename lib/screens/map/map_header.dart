@@ -11,6 +11,7 @@ import 'package:aed_map/bloc/network_status/network_status_state.dart';
 import 'package:aed_map/constants.dart';
 import 'package:aed_map/main.dart';
 import 'package:aed_map/screens/pending_changes/pending_changes_page.dart';
+import 'package:aed_map/screens/search/search_dialog.dart';
 import 'package:aed_map/screens/settings/settings_page.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
@@ -174,6 +175,31 @@ class MapHeader extends StatelessWidget {
                                     color: CupertinoColors.label
                                         .resolveFrom(context))),
                           )),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+              Column(
+                children: [
+                  GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => const SearchDialog(),
+                      );
+                    },
+                    child: Card(
+                      color: CupertinoColors.secondarySystemBackground
+                          .resolveFrom(context),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Icon(CupertinoIcons.search,
+                            color: CupertinoColors.label.resolveFrom(context)),
+                      ),
                     ),
                   ),
                 ],

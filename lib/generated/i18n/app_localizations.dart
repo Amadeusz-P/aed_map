@@ -178,6 +178,18 @@ abstract class AppLocalizations {
   /// **'Navigate'**
   String get navigate;
 
+  /// No description provided for @showMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get showMore;
+
+  /// No description provided for @showLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get showLess;
+
   /// No description provided for @chooseMapApp.
   ///
   /// In en, this message translates to:
@@ -328,6 +340,12 @@ abstract class AppLocalizations {
   /// **'Edit defibrillator'**
   String get editDefibrillator;
 
+  /// No description provided for @enterNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter note / description'**
+  String get enterNote;
+
   /// No description provided for @information.
   ///
   /// In en, this message translates to:
@@ -369,18 +387,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose access'**
   String get chooseAccess;
-
-  /// No description provided for @level.
-  ///
-  /// In en, this message translates to:
-  /// **'Level'**
-  String get level;
-
-  /// No description provided for @enterLevel.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter level'**
-  String get enterLevel;
 
   /// No description provided for @editOpeningHours.
   ///
@@ -945,6 +951,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to upload photo'**
   String get photoUploadFailed;
+
+  /// No description provided for @level.
+  ///
+  /// In en, this message translates to:
+  /// **'Floor (Level)'**
+  String get level;
+
+  /// No description provided for @enterLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter floor'**
+  String get enterLevel;
+
+  /// No description provided for @theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get theme;
+
+  /// No description provided for @themeLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get themeLight;
+
+  /// No description provided for @themeDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get themeDark;
+
+  /// No description provided for @themeSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get themeSystem;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @personalization.
+  ///
+  /// In en, this message translates to:
+  /// **'Personalization'**
+  String get personalization;
+
+  /// No description provided for @searchLocationPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for a city or address...'**
+  String get searchLocationPlaceholder;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get searchNoResults;
 }
 
 class _AppLocalizationsDelegate

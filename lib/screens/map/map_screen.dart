@@ -74,6 +74,7 @@ class _MapScreenState extends State<MapScreen> {
       topRight: Radius.circular(24.0),
     );
     return CupertinoPageScaffold(
+        resizeToAvoidBottomInset: false,
         child: BlocListener<PanelCubit, panel_state.PanelState>(
       listener: (BuildContext context, state) {
         if (state.visible && !panel.isPanelShown) panel.show();
@@ -106,7 +107,7 @@ class _MapScreenState extends State<MapScreen> {
                   panelBuilder: (ScrollController sc) => Container(
                       decoration: BoxDecoration(borderRadius: radius),
                       child: BottomPanel(scrollController: sc)),
-                  body: const RasterMap()),
+                  body: RasterMap(floatingPanelPosition: _floatingPanelPosition)),
               const MapHeader(),
               FloatingPanel(floatingPanelPosition: _floatingPanelPosition),
               const MarkerSelectionFooter()

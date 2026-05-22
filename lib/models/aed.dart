@@ -4,6 +4,7 @@ import 'package:aed_map/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
+import 'dart:ui';
 
 import '../generated/i18n/app_localizations.dart';
 
@@ -19,6 +20,7 @@ class Defibrillator {
   String? openingHours;
   String? access;
   String? image;
+  String? note;
   Uint8List? photoBytes;
 
   Defibrillator(
@@ -31,6 +33,7 @@ class Defibrillator {
       this.phone,
       this.openingHours,
       this.image = '',
+      this.note,
       this.access = 'yes',
       List<int>? photoBytes})
       : photoBytes = photoBytes != null ? Uint8List.fromList(photoBytes) : null;
@@ -91,7 +94,7 @@ class Defibrillator {
     return filenames[access];
   }
 
-  dynamic toXml(int changesetId, int version,
+  dynamic toXml(int changesetId, int version, String systemLang,
       {List<List<String>> oldTags = const []}) {
     final builder = XmlBuilder();
     builder.processing('xml', 'version="1.0"');
@@ -114,6 +117,10 @@ class Defibrillator {
         if (description != null && description.toString().isNotEmpty) {
           builder.element('tag', attributes: {
             'k': 'defibrillator:location',
+            'v': description.toString()
+          });
+          builder.element('tag', attributes: {
+            'k': 'defibrillator:location:$systemLang',
             'v': description.toString()
           });
         }
@@ -139,6 +146,10 @@ class Defibrillator {
         if (phone != null && phone.toString().isNotEmpty) {
           builder.element('tag', attributes: {'k': 'phone', 'v': phone ?? ''});
         }
+        if (note != null && note.toString().isNotEmpty) {
+          builder.element('tag', attributes: {'k': 'description', 'v': note ?? ''});
+          builder.element('tag', attributes: {'k': 'description:$systemLang', 'v': note ?? ''});
+        }
 
         oldTags
             .where((attr) => ![
@@ -150,7 +161,11 @@ class Defibrillator {
                   'emergency',
                   'access',
                   'defibrillator:location',
+                  'defibrillator:location:$systemLang',
                   'image',
+                  'note',
+                  'description',
+                  'description:$systemLang',
                 ].contains(attr[0]))
             .forEach((attr) {
           builder.element('tag', attributes: {'k': attr[0], 'v': attr[1]});
@@ -169,18 +184,16 @@ class Defibrillator {
     String? level,
     String? operator,
     String? phone,
-    int? distance,
     String? openingHours,
     String? access,
     String? image,
-    Uint8List? photoBytes,
-    Map? colors,
-    Map? filenames,
+    String? note,
+    List<int>? photoBytes,
   }) {
     return Defibrillator(
       location: location ?? this.location,
-      description: description ?? this.description,
       id: id ?? this.id,
+      description: description ?? this.description,
       indoor: indoor ?? this.indoor,
       level: level ?? this.level,
       operator: operator ?? this.operator,
@@ -188,6 +201,7 @@ class Defibrillator {
       openingHours: openingHours ?? this.openingHours,
       access: access ?? this.access,
       image: image ?? this.image,
+      note: note ?? this.note,
       photoBytes: photoBytes ?? this.photoBytes,
     );
   }
@@ -200,6 +214,7 @@ class Defibrillator {
         a.phone == b.phone &&
         a.openingHours == b.openingHours &&
         a.access == b.access &&
+        a.note == b.note &&
         a.image == b.image;
   }
 

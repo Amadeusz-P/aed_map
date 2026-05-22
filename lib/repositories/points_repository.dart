@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:aed_map/constants.dart';
 import 'package:aed_map/main.dart';
@@ -24,6 +25,9 @@ class PointsRepository {
   static const String defibrillatorListUpdateTimestamp = 'aed_update';
 
   static const devMode = kDebugMode;
+
+  List<Defibrillator>? _cachedDefibrillators;
+  LatLng? _lastUserLocation;
 
   Future<File> get cacheFile async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -62,61 +66,103 @@ class PointsRepository {
     return DateTime.parse(value);
   }
 
-  Future<(List<Defibrillator>, int)> loadDefibrillators(
-      LatLng currentLocation) async {
+  Future<(List<Defibrillator>, int, Defibrillator)> loadDefibrillators(
+      LatLng mapCenter, LatLng userLocation) async {
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       await mixpanel.registerSuperProperties({
-        "\$latitude": currentLocation.latitude,
-        "\$longitude": currentLocation.longitude
+        "\$latitude": userLocation.latitude,
+        "\$longitude": userLocation.longitude
       });
-      mixpanel.getPeople().set('\$latitude', currentLocation.latitude);
-      mixpanel.getPeople().set('\$longitude', currentLocation.longitude);
-    }
-    List<Defibrillator> defibrillators = [];
-    if (!(await (await cacheFile).exists())) {
-      await loadLocalDefibrillators();
-    }
-    updateDefibrillators();
-    print('Using file ${(await cacheFile).path}');
-    var contents = await (await cacheFile).readAsString();
-    var idLabel = 'osm_id';
-    if (contents.contains('@osm_id')) {
-      idLabel = '@osm_id';
+      mixpanel.getPeople().set('\$latitude', userLocation.latitude);
+      mixpanel.getPeople().set('\$longitude', userLocation.longitude);
     }
 
-    var jsonList = jsonDecode(contents)['features'];
-    jsonList.forEach((row) {
-      var id = row['properties'][idLabel];
-      var descriptions = Map.from(row['properties'])
-          .entries
-          .where((a) => a.key.startsWith('defibrillator:location'))
-          .toList();
-      descriptions.sort((a, b) => b.key.length - a.key.length);
-      defibrillators.add(Defibrillator(
-          location: LatLng(row['geometry']['coordinates'][1],
-              row['geometry']['coordinates'][0]),
-          id: id,
-          description: descriptions.firstOrNull?.value,
-          indoor: row['properties']['indoor'],
-          level: row['properties']['level']?.toString(),
-          operator: row['properties']['operator'],
-          phone: row['properties']['phone'],
-          openingHours: row['properties']['opening_hours'],
-          access: row['properties']['access'],
-          image: row['properties']['image']));
-    });
-    print('Loaded ${defibrillators.length} defibrillators!');
-    defibrillators = defibrillators.map((defibrillator) {
-      const Distance distance = Distance(calculator: Haversine());
-      defibrillator.distance =
-          distance(currentLocation, defibrillator.location).ceil();
-      return defibrillator;
+    if (_cachedDefibrillators == null) {
+      List<Defibrillator> defibrillators = [];
+      if (!(await (await cacheFile).exists())) {
+        await loadLocalDefibrillators();
+      }
+      updateDefibrillators();
+      print('Using file ${(await cacheFile).path}');
+      var contents = await (await cacheFile).readAsString();
+      var idLabel = 'osm_id';
+      if (contents.contains('@osm_id')) {
+        idLabel = '@osm_id';
+      }
+
+      var jsonList = jsonDecode(contents)['features'];
+      var systemLang = PlatformDispatcher.instance.locale.languageCode;
+
+      jsonList.forEach((row) {
+        var id = row['properties'][idLabel];
+        var descriptions = Map.from(row['properties'])
+            .entries
+            .where((a) => a.key.startsWith('defibrillator:location'))
+            .toList();
+        var exactMatch = descriptions.where((a) => a.key == 'defibrillator:location:$systemLang');
+        String? finalDescription;
+        if (exactMatch.isNotEmpty) {
+          finalDescription = exactMatch.first.value;
+        } else {
+          var defaultMatch = descriptions.where((a) => a.key == 'defibrillator:location');
+          if (defaultMatch.isNotEmpty) {
+            finalDescription = defaultMatch.first.value;
+          } else {
+            descriptions.sort((a, b) => a.key.length.compareTo(b.key.length));
+            finalDescription = descriptions.firstOrNull?.value;
+          }
+        }
+        defibrillators.add(Defibrillator(
+            location: LatLng(row['geometry']['coordinates'][1],
+                row['geometry']['coordinates'][0]),
+            id: id,
+            description: finalDescription,
+            note: row['properties']['note'] ?? row['properties']['description'],
+            indoor: row['properties']['indoor'],
+            level: row['properties']['level']?.toString(),
+            operator: row['properties']['operator'],
+            phone: row['properties']['phone'],
+            openingHours: row['properties']['opening_hours'],
+            access: row['properties']['access'],
+            image: row['properties']['image']));
+      });
+      print('Loaded \${defibrillators.length} defibrillators!');
+      _cachedDefibrillators = defibrillators;
+    }
+
+    bool userLocationChanged = _lastUserLocation != userLocation;
+    _lastUserLocation = userLocation;
+
+    double cosLat = math.cos(mapCenter.latitude * math.pi / 180);
+    var mappedDefibrillators = _cachedDefibrillators!.map((defibrillator) {
+      if (userLocationChanged || defibrillator.distance == null) {
+        const Distance distance = Distance(calculator: Haversine());
+        defibrillator.distance =
+            distance(userLocation, defibrillator.location).ceil();
+      }
+      
+      double dx = (defibrillator.location.longitude - mapCenter.longitude) * cosLat;
+      double dy = defibrillator.location.latitude - mapCenter.latitude;
+      double sqDist = dx * dx + dy * dy;
+      
+      return (defibrillator, sqDist);
     }).toList();
-    defibrillators.sort((a, b) => a.distance!.compareTo(b.distance!));
-    final defibrillatorsCount = defibrillators.length;
+    mappedDefibrillators.sort((a, b) => a.$2.compareTo(b.$2));
+    final defibrillatorsCount = mappedDefibrillators.length;
+    
+    Defibrillator? closestToUser;
+    int minDistance = 999999999;
+    for (var item in mappedDefibrillators) {
+      if (item.$1.distance != null && item.$1.distance! < minDistance) {
+        minDistance = item.$1.distance!;
+        closestToUser = item.$1;
+      }
+    }
+
     return (
-      defibrillators.take(visiblePointsCount).toList(),
-      defibrillatorsCount
+      mappedDefibrillators.map((e) => e.$1).take(visiblePointsCount).toList(),
+      defibrillatorsCount,
+      closestToUser ?? mappedDefibrillators.first.$1
     );
   }
 
@@ -216,13 +262,14 @@ class PointsRepository {
   Future<Defibrillator> insertDefibrillator(Defibrillator defibrillator) async {
     if (!devMode) {
       var changesetId = await getChangesetId();
+      var systemLang = PlatformDispatcher.instance.locale.languageCode;
       var response = await http.put(
           Uri.parse('https://api.openstreetmap.org/api/0.6/node/create'),
           headers: {
             'Content-Type': 'text/xml',
             'Authorization': 'Bearer $token'
           },
-          body: defibrillator.toXml(changesetId, 1));
+          body: defibrillator.toXml(changesetId, 1, systemLang));
       if (response.statusCode != 200) {
         throw OsmApiException(response.statusCode, response.body);
       }
@@ -265,7 +312,8 @@ class PointsRepository {
         tag.attributes.where((attr) => attr.name.toString() == 'v').first.value
       ];
     }).toList();
-    var xml = defibrillator.toXml(changesetId, int.parse(oldVersion),
+    var systemLang = PlatformDispatcher.instance.locale.languageCode;
+    var xml = defibrillator.toXml(changesetId, int.parse(oldVersion), systemLang,
         oldTags: oldTagsPairs);
     var putResponse = await http.put(
         Uri.parse(

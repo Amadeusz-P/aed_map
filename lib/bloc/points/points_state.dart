@@ -13,10 +13,12 @@ class PointsLoadSuccess extends PointsState {
   final List<Defibrillator> defibrillators;
   final int defibrillatorsCount;
   final Defibrillator selected;
+  final Defibrillator closest;
   final List<Marker> markers;
   final String hash;
   final DateTime lastUpdateTime;
   final bool refreshing;
+  final String selectedHash;
   final Set<int> pendingIds;
 
   @override
@@ -24,21 +26,25 @@ class PointsLoadSuccess extends PointsState {
         defibrillators,
         defibrillatorsCount,
         selected,
+        closest,
         markers,
         hash,
         lastUpdateTime,
         refreshing,
-        pendingIds
+        pendingIds,
+        selectedHash
       ];
 
   PointsLoadSuccess({
     required this.defibrillators,
     required this.defibrillatorsCount,
     required this.selected,
+    required this.closest,
     required this.markers,
     required this.hash,
     required this.lastUpdateTime,
     required this.refreshing,
+    this.selectedHash = '',
     this.pendingIds = const {},
   });
 
@@ -46,8 +52,10 @@ class PointsLoadSuccess extends PointsState {
     List<Defibrillator>? defibrillators,
     int? defibrillatorsCount,
     Defibrillator? selected,
+    Defibrillator? closest,
     List<Marker>? markers,
     String? hash,
+    String? selectedHash,
     DateTime? lastUpdateTime,
     bool? refreshing,
     Set<int>? pendingIds,
@@ -56,8 +64,10 @@ class PointsLoadSuccess extends PointsState {
       defibrillators: defibrillators ?? this.defibrillators,
       defibrillatorsCount: defibrillatorsCount ?? this.defibrillatorsCount,
       selected: selected ?? this.selected,
+      closest: closest ?? this.closest,
       markers: markers ?? this.markers,
       hash: hash ?? this.hash,
+      selectedHash: selectedHash ?? this.selectedHash,
       lastUpdateTime: lastUpdateTime ?? this.lastUpdateTime,
       refreshing: refreshing ?? this.refreshing,
       pendingIds: pendingIds ?? this.pendingIds,

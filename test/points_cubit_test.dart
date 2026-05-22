@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:aed_map/bloc/edit/edit_cubit.dart';
 import 'package:aed_map/bloc/points/points_cubit.dart';
 import 'package:aed_map/bloc/points/points_state.dart';
+import 'package:aed_map/bloc/settings/settings_cubit.dart';
 import 'package:aed_map/repositories/geolocation_repository.dart';
 import 'package:aed_map/repositories/pending_changes_repository.dart';
 import 'package:aed_map/repositories/points_repository.dart';
@@ -34,7 +35,8 @@ void main() {
       pointsCubit = PointsCubit(
           pointsRepository: PointsRepository(),
           geolocationRepository: geolocationRepository,
-          editCubit: editCubit);
+          editCubit: editCubit,
+          settingsCubit: SettingsCubit());
     });
 
     test('initial state is PointsLoadInProgress', () {

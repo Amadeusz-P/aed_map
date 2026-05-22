@@ -105,10 +105,21 @@ class EditCubit extends Cubit<EditState> {
   }
 
   void editDescription(String value) {
-    var s = state;
-    if (s is EditInProgress) {
-      s.defibrillator.description = value;
-      emit(s.copyWith(defibrillator: s.defibrillator, description: value));
+    if (state is EditInProgress) {
+      emit((state as EditInProgress).copyWith(
+          description: value,
+          defibrillator: (state as EditInProgress)
+              .defibrillator
+              .copyWith(description: value)));
+    }
+  }
+
+  void editNote(String value) {
+    if (state is EditInProgress) {
+      emit((state as EditInProgress).copyWith(
+          defibrillator: (state as EditInProgress)
+              .defibrillator
+              .copyWith(note: value)));
     }
   }
 

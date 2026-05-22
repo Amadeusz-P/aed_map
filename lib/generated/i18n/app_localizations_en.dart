@@ -47,6 +47,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navigate => 'Navigate';
 
   @override
+  String get showMore => 'Show more';
+
+  @override
+  String get showLess => 'Show less';
+
+  @override
   String get chooseMapApp => 'Choose maps application';
 
   @override
@@ -126,6 +132,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editDefibrillator => 'Edit defibrillator';
 
   @override
+  String get enterNote => 'Enter note / description';
+
+  @override
   String get information => 'Information';
 
   @override
@@ -145,12 +154,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chooseAccess => 'Choose access';
-
-  @override
-  String get level => 'Floor (Level)';
-
-  @override
-  String get enterLevel => 'Enter floor';
 
   @override
   String get editOpeningHours => 'Edit opening hours';
@@ -458,4 +461,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get photoUploadFailed => 'Failed to upload photo';
+
+  @override
+  String get level => 'Floor (Level)';
+
+  @override
+  String get enterLevel => 'Enter floor';
+
+  @override
+  String get theme => 'Theme';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get themeSystem => 'System';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get personalization => 'Personalization';
+
+  @override
+  String get searchLocationPlaceholder => 'Search for a city or address...';
+
+  @override
+  String get searchNoResults => 'No results found';
 }

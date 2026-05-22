@@ -180,5 +180,15 @@
   "reportPhotoConfirm": "Möchten Sie dieses Foto wirklich als unangemessen melden?",
   "photoReported": "Foto wurde gemeldet",
   "photoUploaded": "Foto erfolgreich gespeichert",
-  "photoUploadFailed": "Foto konnte nicht hochgeladen werden"
+  "photoUploadFailed": "Foto konnte nicht hochgeladen werden",
+  "showMore": "Mehr anzeigen",
+  "showLess": "Weniger anzeigen",
+  "theme": "Thema",
+  "themeLight": "Hell",
+  "themeDark": "Dunkel",
+  "themeSystem": "System",
+  "language": "Sprache",
+  "personalization": "Personalisierung",
+  "searchLocationPlaceholder": "Suchen Sie nach einer Stadt oder Adresse...",
+  "searchNoResults": "Keine Ergebnisse gefunden"
 }

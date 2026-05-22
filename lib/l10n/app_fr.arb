@@ -180,5 +180,15 @@
   "reportPhotoConfirm": "Êtes-vous sûr de vouloir signaler cette photo comme inappropriée ?",
   "photoReported": "La photo a été signalée",
   "photoUploaded": "Photo enregistrée avec succès",
-  "photoUploadFailed": "Échec du téléchargement de la photo"
+  "photoUploadFailed": "Échec du téléchargement de la photo",
+  "showMore": "Afficher plus",
+  "showLess": "Afficher moins",
+  "theme": "Thème",
+  "themeLight": "Clair",
+  "themeDark": "Sombre",
+  "themeSystem": "Système",
+  "language": "Langue",
+  "personalization": "Personnalisation",
+  "searchLocationPlaceholder": "Rechercher une ville ou une adresse...",
+  "searchNoResults": "Aucun résultat trouvé"
 }

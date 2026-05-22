@@ -117,6 +117,15 @@ class EditForm extends StatelessWidget {
                   hintText: appLocalizations.enterDescription),
             ),
           ),
+          SettingsTile(
+            leading: const Icon(CupertinoIcons.pencil_ellipsis_rectangle),
+            title: TextFormField(
+              initialValue: state.defibrillator.note,
+              onChanged: context.read<EditCubit>().editNote,
+              decoration: InputDecoration.collapsed(
+                  hintText: appLocalizations.enterNote),
+            ),
+          ),
           SettingsTile.navigation(
             leading: const Icon(CupertinoIcons.arrow_clockwise_circle),
             title: Text(appLocalizations.access),

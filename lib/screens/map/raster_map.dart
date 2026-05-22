@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:aed_map/bloc/edit/edit_cubit.dart';
 import 'package:aed_map/bloc/edit/edit_state.dart';
 import 'package:aed_map/bloc/routing/routing_cubit.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,12 +17,15 @@ import '../../bloc/location/location_state.dart';
 import '../../bloc/panel/panel_cubit.dart';
 import '../../bloc/points/points_cubit.dart';
 import '../../bloc/points/points_state.dart';
+import '../../bloc/search/search_cubit.dart';
 import '../../bloc/routing/routing_state.dart';
 import '../../shared/cached_network_tile_provider.dart';
 import '../../shared/utils.dart';
 
 class RasterMap extends StatefulWidget {
-  const RasterMap({super.key});
+  const RasterMap({super.key, this.floatingPanelPosition = 0});
+
+  final double floatingPanelPosition;
 
   @override
   State<RasterMap> createState() => _RasterMapState();
@@ -32,6 +37,14 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
       SuperclusterMutableController();
 
   bool isMapInitialized = false;
+  LatLng? lastFetchedCenter;
+  Timer? _debounceFetch;
+
+  @override
+  void dispose() {
+    _debounceFetch?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +55,15 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
         }
       },
       listenWhen: (previous, current) => !previous.enabled && current.enabled,
-      child: BlocListener<LocationCubit, LocationState>(
+      child: BlocListener<SearchCubit, SearchState>(
+        listener: (context, state) {
+          if (state.selectedLocation != null) {
+            _animatedMapMove(state.selectedLocation!, 16);
+            context.read<PointsCubit>().fetchForLocation(state.selectedLocation!);
+          }
+        },
+        listenWhen: (previous, current) => previous.selectedLocation != current.selectedLocation && current.selectedLocation != null,
+        child: BlocListener<LocationCubit, LocationState>(
         listener: (BuildContext context, state) {
           if (state is LocationDetermined) {
             _animatedMapMove(state.center, 18);
@@ -60,8 +81,16 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
               ((current.defibrillators.length != previous.defibrillators.length) ||
                   (current.defibrillators.first.access != previous.defibrillators.first.access) ||
                   (current.defibrillators.first.id != previous.defibrillators.first.id) ||
-                  !setEquals(current.pendingIds, previous.pendingIds)),
+                  !setEquals(current.pendingIds, previous.pendingIds) ||
+                  current.markers != previous.markers),
           child: BlocListener<PointsCubit, PointsState>(
+            listenWhen: (previous, current) {
+              if (previous is! PointsLoadSuccess && current is PointsLoadSuccess) return true;
+              if (previous is PointsLoadSuccess && current is PointsLoadSuccess) {
+                return previous.selectedHash != current.selectedHash;
+              }
+              return false;
+            },
             listener: (BuildContext context, PointsState state) {
               if (state is PointsLoadSuccess) {
                 _animatedMapMove(state.selected.location, 18);
@@ -94,6 +123,17 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
                                       context
                                           .read<EditCubit>()
                                           .moveCursor(center);
+                                          
+                                      var pointsState = context.read<PointsCubit>().state;
+                                      if (pointsState is PointsLoadSuccess) {
+                                        if (lastFetchedCenter == null || const Distance().as(LengthUnit.Kilometer, lastFetchedCenter!, center) > 2) {
+                                          if (_debounceFetch?.isActive ?? false) _debounceFetch!.cancel();
+                                          _debounceFetch = Timer(const Duration(milliseconds: 500), () {
+                                            lastFetchedCenter = center;
+                                            context.read<PointsCubit>().fetchForLocation(center);
+                                          });
+                                        }
+                                      }
                                     }
                                   },
                                   onMapReady: () {
@@ -111,8 +151,7 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
                                 ),
                                 children: [
                                   HueRotation(
-                                    degrees: MediaQuery.of(context)
-                                                .platformBrightness ==
+                                    degrees: MediaQuery.platformBrightnessOf(context) ==
                                             Brightness.dark
                                         ? 180
                                         : 0,
@@ -125,8 +164,7 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
                                         urlTemplate:
                                             'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                       );
-                                      if (MediaQuery.of(context)
-                                              .platformBrightness !=
+                                      if (MediaQuery.platformBrightnessOf(context) !=
                                           Brightness.dark) {
                                         return map;
                                       }
@@ -189,7 +227,9 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
                                           .defibrillators[int.parse(marker.key
                                               .toString()
                                               .replaceAll('[<\'', '')
-                                              .replaceAll('\'>]', ''))];
+                                              .replaceAll('\'>]', '')
+                                              .split('_')
+                                              .first)];
                                       context.read<RoutingCubit>().cancel();
                                       context
                                           .read<PointsCubit>()
@@ -222,6 +262,34 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
                         }
                         return Container();
                       }),
+                      Positioned(
+                        right: 16,
+                        bottom: 116 + (widget.floatingPanelPosition * 340),
+                        child: SafeArea(
+                          maintainBottomViewPadding: true,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: () {
+                              var locState = context.read<LocationCubit>().state;
+                              if (locState is LocationDetermined) {
+                                _animatedMapMove(locState.center, 18);
+                              }
+                            },
+                            child: Card(
+                              color: CupertinoColors.secondarySystemBackground
+                                  .resolveFrom(context),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Icon(
+                                  CupertinoIcons.location,
+                                  color:
+                                      CupertinoColors.label.resolveFrom(context),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   )),
                 ],
@@ -230,6 +298,7 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -237,6 +306,15 @@ class _RasterMapState extends State<RasterMap> with TickerProviderStateMixin {
     if (!isMapInitialized) {
       return;
     }
+
+    final distance = const Distance().as(
+        LengthUnit.Kilometer, mapController.camera.center, destLocation);
+
+    if (distance > 50) {
+      mapController.move(destLocation, destZoom);
+      return;
+    }
+
     final latTween = Tween<double>(
         begin: mapController.camera.center.latitude,
         end: destLocation.latitude);

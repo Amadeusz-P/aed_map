@@ -1,3 +1,4 @@
+import 'package:aed_map/bloc/settings/settings_cubit.dart';
 import 'package:aed_map/bloc/edit/edit_cubit.dart';
 import 'package:aed_map/bloc/edit/edit_state.dart';
 import 'package:aed_map/bloc/feedback/feedback_cubit.dart';
@@ -128,6 +129,66 @@ class _SettingsPageState extends State<SettingsPage>
                             },
                           )
                         ],
+                      ),
+                      SettingsSection(
+                        title: Text(appLocalizations.personalization),
+                        tiles: [
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.moon),
+                            title: Text(appLocalizations.theme),
+                            value: BlocBuilder<SettingsCubit, SettingsState>(
+                              builder: (context, state) {
+                                switch (state.themeMode) {
+                                  case ThemeMode.light:
+                                    return Text(appLocalizations.themeLight);
+                                  case ThemeMode.dark:
+                                    return Text(appLocalizations.themeDark);
+                                  case ThemeMode.system:
+                                  default:
+                                    return Text(appLocalizations.themeSystem);
+                                }
+                              },
+                            ),
+                            onPressed: (context) {
+                              showCupertinoModalPopup(
+                                context: context,
+                                builder: (BuildContext context) => CupertinoActionSheet(
+                                  title: Text(appLocalizations.theme),
+                                  actions: <CupertinoActionSheetAction>[
+                                    CupertinoActionSheetAction(
+                                      onPressed: () {
+                                        context.read<SettingsCubit>().setThemeMode(ThemeMode.system);
+                                        Navigator.pop(context);
+                                      },
+                                      child: Text(appLocalizations.themeSystem),
+                                    ),
+                                    CupertinoActionSheetAction(
+                                      onPressed: () {
+                                        context.read<SettingsCubit>().setThemeMode(ThemeMode.light);
+                                        Navigator.pop(context);
+                                      },
+                                      child: Text(appLocalizations.themeLight),
+                                    ),
+                                    CupertinoActionSheetAction(
+                                      onPressed: () {
+                                        context.read<SettingsCubit>().setThemeMode(ThemeMode.dark);
+                                        Navigator.pop(context);
+                                      },
+                                      child: Text(appLocalizations.themeDark),
+                                    ),
+                                  ],
+                                  cancelButton: CupertinoActionSheetAction(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text(appLocalizations.cancel),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+
+                        ]
                       ),
                       if (editState.user != null)
                         SettingsSection(

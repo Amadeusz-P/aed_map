@@ -6,11 +6,10 @@ import '../constants.dart';
 
 class GeolocationRepository {
   Future<({LatLng location, bool permissionDenied})> locate() async {
-    if (kDebugMode) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      return (location: warsaw, permissionDenied: false);
-    }
     try {
+      if (kDebugMode) {
+        return (location: warsaw, permissionDenied: false);
+      }
       bool serviceEnabled;
       LocationPermission permission;
       serviceEnabled = await Geolocator.isLocationServiceEnabled();

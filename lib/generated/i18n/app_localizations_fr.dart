@@ -47,6 +47,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navigate => 'Naviguer';
 
   @override
+  String get showMore => 'Afficher plus';
+
+  @override
+  String get showLess => 'Afficher moins';
+
+  @override
   String get chooseMapApp => 'Choisir l\'application de cartes';
 
   @override
@@ -125,6 +131,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editDefibrillator => 'Modifier le défibrillateur';
+
+  @override
+  String get enterNote => 'Enter note / description';
 
   @override
   String get information => 'Information';
@@ -459,4 +468,35 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get photoUploadFailed => 'Échec du téléchargement de la photo';
+
+  @override
+  String get level => 'Floor (Level)';
+
+  @override
+  String get enterLevel => 'Enter floor';
+
+  @override
+  String get theme => 'Thème';
+
+  @override
+  String get themeLight => 'Clair';
+
+  @override
+  String get themeDark => 'Sombre';
+
+  @override
+  String get themeSystem => 'Système';
+
+  @override
+  String get language => 'Langue';
+
+  @override
+  String get personalization => 'Personnalisation';
+
+  @override
+  String get searchLocationPlaceholder =>
+      'Rechercher une ville ou une adresse...';
+
+  @override
+  String get searchNoResults => 'Aucun résultat trouvé';
 }
