@@ -92,25 +92,39 @@ class _MapScreenState extends State<MapScreen> {
         if (state is PointsLoadSuccess) {
           return Stack(
             children: [
-              SlidingUpPanel(
-                  defaultPanelState: PanelState.OPEN,
-                  controller: panel,
-                  maxHeight: 450,
-                  borderRadius: radius,
-                  parallaxEnabled: true,
-                  parallaxOffset: 0.5,
-                  onPanelSlide: (value) {
-                    setState(() {
-                      _floatingPanelPosition = value;
-                    });
-                  },
-                  panelBuilder: (ScrollController sc) => Container(
-                      decoration: BoxDecoration(borderRadius: radius),
-                      child: BottomPanel(scrollController: sc)),
-                  body: RasterMap(floatingPanelPosition: _floatingPanelPosition)),
-              const MapHeader(),
-              FloatingPanel(floatingPanelPosition: _floatingPanelPosition),
-              const MarkerSelectionFooter()
+              AbsorbPointer(
+                absorbing: state.refreshing,
+                child: Stack(
+                  children: [
+                    SlidingUpPanel(
+                        defaultPanelState: PanelState.OPEN,
+                        controller: panel,
+                        maxHeight: 450,
+                        borderRadius: radius,
+                        parallaxEnabled: true,
+                        parallaxOffset: 0.5,
+                        onPanelSlide: (value) {
+                          setState(() {
+                            _floatingPanelPosition = value;
+                          });
+                        },
+                        panelBuilder: (ScrollController sc) => Container(
+                            decoration: BoxDecoration(borderRadius: radius),
+                            child: BottomPanel(scrollController: sc)),
+                        body: RasterMap(floatingPanelPosition: _floatingPanelPosition)),
+                    const MapHeader(),
+                    FloatingPanel(floatingPanelPosition: _floatingPanelPosition),
+                    const MarkerSelectionFooter()
+                  ],
+                ),
+              ),
+              if (state.refreshing)
+                Container(
+                  color: CupertinoColors.systemBackground.resolveFrom(context).withOpacity(0.5),
+                  child: Center(
+                    child: CupertinoActivityIndicator(radius: 20),
+                  ),
+                ),
             ],
           );
         }

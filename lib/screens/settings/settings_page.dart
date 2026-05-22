@@ -187,7 +187,53 @@ class _SettingsPageState extends State<SettingsPage>
                               );
                             },
                           ),
-
+                          SettingsTile.navigation(
+                            leading: const Icon(CupertinoIcons.globe),
+                            title: Text(appLocalizations.language),
+                            value: BlocBuilder<SettingsCubit, SettingsState>(
+                              builder: (context, state) {
+                                return Text(state.languageCode.isEmpty
+                                    ? appLocalizations.themeSystem
+                                    : _langName(state.languageCode));
+                              },
+                            ),
+                            onPressed: (context) {
+                              showCupertinoModalPopup(
+                                context: context,
+                                builder: (BuildContext context) => CupertinoActionSheet(
+                                  title: Text(appLocalizations.language),
+                                  actions: [
+                                    CupertinoActionSheetAction(
+                                      onPressed: () {
+                                        context.read<SettingsCubit>().setLanguage('');
+                                        Navigator.pop(context);
+                                      },
+                                      child: Text(appLocalizations.themeSystem),
+                                    ),
+                                    for (final entry in [
+                                      ('en', 'English'),
+                                      ('pl', 'Polski'),
+                                      ('de', 'Deutsch'),
+                                      ('es', 'Español'),
+                                      ('fr', 'Français'),
+                                      ('it', 'Italiano'),
+                                    ])
+                                      CupertinoActionSheetAction(
+                                        onPressed: () {
+                                          context.read<SettingsCubit>().setLanguage(entry.$1);
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text(entry.$2),
+                                      ),
+                                  ],
+                                  cancelButton: CupertinoActionSheetAction(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: Text(appLocalizations.cancel),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ]
                       ),
                       if (editState.user != null)
@@ -297,5 +343,17 @@ class _SettingsPageState extends State<SettingsPage>
           }),
         ),
       );
+  }
+
+  String _langName(String code) {
+    const names = {
+      'en': 'English',
+      'pl': 'Polski',
+      'de': 'Deutsch',
+      'es': 'Español',
+      'fr': 'Français',
+      'it': 'Italiano',
+    };
+    return names[code] ?? code;
   }
 }

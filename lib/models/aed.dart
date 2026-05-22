@@ -10,7 +10,7 @@ import '../generated/i18n/app_localizations.dart';
 
 class Defibrillator {
   LatLng location;
-  String? description;
+  String? locationDescription;
   int id;
   String? indoor;
   String? level;
@@ -20,20 +20,20 @@ class Defibrillator {
   String? openingHours;
   String? access;
   String? image;
-  String? note;
+  String? description;
   Uint8List? photoBytes;
 
   Defibrillator(
       {required this.location,
       required this.id,
-      this.description,
+      this.locationDescription,
       this.indoor,
       this.level,
       this.operator,
       this.phone,
       this.openingHours,
       this.image = '',
-      this.note,
+      this.description,
       this.access = 'yes',
       List<int>? photoBytes})
       : photoBytes = photoBytes != null ? Uint8List.fromList(photoBytes) : null;
@@ -97,6 +97,20 @@ class Defibrillator {
   dynamic toXml(int changesetId, int version, String systemLang,
       {List<List<String>> oldTags = const []}) {
     final builder = XmlBuilder();
+
+    // Determine whether we should write/overwrite the generic (no-suffix) tags.
+    // English is the OSM fallback language, so it always owns the generic tag.
+    // Any other language only creates the generic tag if it doesn't already
+    // exist (e.g. when adding a brand-new AED). Existing generic tags set by
+    // other editors are left untouched.
+    final isEnglish = systemLang == 'en';
+    final hasGenericLocation =
+        oldTags.any((t) => t[0] == 'defibrillator:location');
+    final hasGenericDescription =
+        oldTags.any((t) => t[0] == 'description');
+    final writeGenericLocation = isEnglish || !hasGenericLocation;
+    final writeGenericDescription = isEnglish || !hasGenericDescription;
+
     builder.processing('xml', 'version="1.0"');
     builder.element('osm', attributes: {'version': '0.6'}, nest: () {
       builder.element('node', nest: () {
@@ -114,15 +128,17 @@ class Defibrillator {
           builder.element('tag',
               attributes: {'k': 'access', 'v': access.toString()});
         }
-        if (description != null && description.toString().isNotEmpty) {
-          builder.element('tag', attributes: {
-            'k': 'defibrillator:location',
-            'v': description.toString()
-          });
+        if (locationDescription != null && locationDescription.toString().isNotEmpty) {
           builder.element('tag', attributes: {
             'k': 'defibrillator:location:$systemLang',
-            'v': description.toString()
+            'v': locationDescription.toString()
           });
+          if (writeGenericLocation) {
+            builder.element('tag', attributes: {
+              'k': 'defibrillator:location',
+              'v': locationDescription.toString()
+            });
+          }
         }
         builder.element('tag',
             attributes: {'k': 'emergency', 'v': 'defibrillator'});
@@ -146,27 +162,30 @@ class Defibrillator {
         if (phone != null && phone.toString().isNotEmpty) {
           builder.element('tag', attributes: {'k': 'phone', 'v': phone ?? ''});
         }
-        if (note != null && note.toString().isNotEmpty) {
-          builder.element('tag', attributes: {'k': 'description', 'v': note ?? ''});
-          builder.element('tag', attributes: {'k': 'description:$systemLang', 'v': note ?? ''});
+        if (description != null && description.toString().isNotEmpty) {
+          builder.element('tag', attributes: {
+            'k': 'description:$systemLang',
+            'v': description ?? ''
+          });
+          if (writeGenericDescription) {
+            builder.element('tag', attributes: {
+              'k': 'description',
+              'v': description ?? ''
+            });
+          }
         }
 
+        // Pass through all old tags that we haven't explicitly written above.
+        final exclusions = {
+          'phone', 'operator', 'opening_hours', 'indoor', 'level',
+          'emergency', 'access', 'image',
+          'defibrillator:location:$systemLang',
+          'description:$systemLang',
+          if (writeGenericLocation) 'defibrillator:location',
+          if (writeGenericDescription) 'description',
+        };
         oldTags
-            .where((attr) => ![
-                  'phone',
-                  'operator',
-                  'opening_hours',
-                  'indoor',
-                  'level',
-                  'emergency',
-                  'access',
-                  'defibrillator:location',
-                  'defibrillator:location:$systemLang',
-                  'image',
-                  'note',
-                  'description',
-                  'description:$systemLang',
-                ].contains(attr[0]))
+            .where((attr) => !exclusions.contains(attr[0]))
             .forEach((attr) {
           builder.element('tag', attributes: {'k': attr[0], 'v': attr[1]});
         });
@@ -178,7 +197,7 @@ class Defibrillator {
 
   Defibrillator copyWith({
     LatLng? location,
-    String? description,
+    String? locationDescription,
     int? id,
     String? indoor,
     String? level,
@@ -187,13 +206,13 @@ class Defibrillator {
     String? openingHours,
     String? access,
     String? image,
-    String? note,
+    String? description,
     List<int>? photoBytes,
   }) {
     return Defibrillator(
       location: location ?? this.location,
       id: id ?? this.id,
-      description: description ?? this.description,
+      locationDescription: locationDescription ?? this.locationDescription,
       indoor: indoor ?? this.indoor,
       level: level ?? this.level,
       operator: operator ?? this.operator,
@@ -201,20 +220,20 @@ class Defibrillator {
       openingHours: openingHours ?? this.openingHours,
       access: access ?? this.access,
       image: image ?? this.image,
-      note: note ?? this.note,
+      description: description ?? this.description,
       photoBytes: photoBytes ?? this.photoBytes,
     );
   }
 
   static bool tagsEqual(Defibrillator a, Defibrillator b) {
-    return a.description == b.description &&
+    return a.locationDescription == b.locationDescription &&
         a.indoor == b.indoor &&
         a.level == b.level &&
         a.operator == b.operator &&
         a.phone == b.phone &&
         a.openingHours == b.openingHours &&
         a.access == b.access &&
-        a.note == b.note &&
+        a.description == b.description &&
         a.image == b.image;
   }
 

@@ -28,6 +28,33 @@ class PointsRepository {
 
   List<Defibrillator>? _cachedDefibrillators;
   LatLng? _lastUserLocation;
+  String? _lastLang;
+
+  static const supportedAedLanguages = ['pl', 'en', 'de', 'es', 'fr', 'it'];
+
+  /// Returns the effective language code to use for AED tags.
+  /// [preferredLang] is from SettingsCubit (empty string = use system locale).
+  static String effectiveLang(String preferredLang) {
+    if (preferredLang.isNotEmpty) return preferredLang;
+    final systemLang = PlatformDispatcher.instance.locale.languageCode;
+    return supportedAedLanguages.contains(systemLang) ? systemLang : 'en';
+  }
+
+  void clearCache() {
+    _cachedDefibrillators = null;
+    _lastUserLocation = null;
+    _lastLang = null;
+  }
+
+  /// Looks up a single defibrillator by ID in the full in-memory cache.
+  /// Returns null if the cache is empty or the ID is not found.
+  Defibrillator? getFromCache(int id) {
+    try {
+      return _cachedDefibrillators?.firstWhere((d) => d.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<File> get cacheFile async {
     if (Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -67,7 +94,7 @@ class PointsRepository {
   }
 
   Future<(List<Defibrillator>, int, Defibrillator)> loadDefibrillators(
-      LatLng mapCenter, LatLng userLocation) async {
+      LatLng mapCenter, LatLng userLocation, String lang) async {
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       await mixpanel.registerSuperProperties({
         "\$latitude": userLocation.latitude,
@@ -77,7 +104,8 @@ class PointsRepository {
       mixpanel.getPeople().set('\$longitude', userLocation.longitude);
     }
 
-    if (_cachedDefibrillators == null) {
+    if (_cachedDefibrillators == null || _lastLang != lang) {
+      _lastLang = lang;
       List<Defibrillator> defibrillators = [];
       if (!(await (await cacheFile).exists())) {
         await loadLocalDefibrillators();
@@ -85,48 +113,8 @@ class PointsRepository {
       updateDefibrillators();
       print('Using file ${(await cacheFile).path}');
       var contents = await (await cacheFile).readAsString();
-      var idLabel = 'osm_id';
-      if (contents.contains('@osm_id')) {
-        idLabel = '@osm_id';
-      }
-
-      var jsonList = jsonDecode(contents)['features'];
-      var systemLang = PlatformDispatcher.instance.locale.languageCode;
-
-      jsonList.forEach((row) {
-        var id = row['properties'][idLabel];
-        var descriptions = Map.from(row['properties'])
-            .entries
-            .where((a) => a.key.startsWith('defibrillator:location'))
-            .toList();
-        var exactMatch = descriptions.where((a) => a.key == 'defibrillator:location:$systemLang');
-        String? finalDescription;
-        if (exactMatch.isNotEmpty) {
-          finalDescription = exactMatch.first.value;
-        } else {
-          var defaultMatch = descriptions.where((a) => a.key == 'defibrillator:location');
-          if (defaultMatch.isNotEmpty) {
-            finalDescription = defaultMatch.first.value;
-          } else {
-            descriptions.sort((a, b) => a.key.length.compareTo(b.key.length));
-            finalDescription = descriptions.firstOrNull?.value;
-          }
-        }
-        defibrillators.add(Defibrillator(
-            location: LatLng(row['geometry']['coordinates'][1],
-                row['geometry']['coordinates'][0]),
-            id: id,
-            description: finalDescription,
-            note: row['properties']['note'] ?? row['properties']['description'],
-            indoor: row['properties']['indoor'],
-            level: row['properties']['level']?.toString(),
-            operator: row['properties']['operator'],
-            phone: row['properties']['phone'],
-            openingHours: row['properties']['opening_hours'],
-            access: row['properties']['access'],
-            image: row['properties']['image']));
-      });
-      print('Loaded \${defibrillators.length} defibrillators!');
+      defibrillators = await compute(_parseGeoJson, {'contents': contents, 'lang': lang});
+      print('Loaded ${defibrillators.length} defibrillators!');
       _cachedDefibrillators = defibrillators;
     }
 
@@ -259,17 +247,16 @@ class PointsRepository {
     return int.parse(response.body.toString());
   }
 
-  Future<Defibrillator> insertDefibrillator(Defibrillator defibrillator) async {
+  Future<Defibrillator> insertDefibrillator(Defibrillator defibrillator, String lang) async {
     if (!devMode) {
       var changesetId = await getChangesetId();
-      var systemLang = PlatformDispatcher.instance.locale.languageCode;
       var response = await http.put(
           Uri.parse('https://api.openstreetmap.org/api/0.6/node/create'),
           headers: {
             'Content-Type': 'text/xml',
             'Authorization': 'Bearer $token'
           },
-          body: defibrillator.toXml(changesetId, 1, systemLang));
+          body: defibrillator.toXml(changesetId, 1, lang));
       if (response.statusCode != 200) {
         throw OsmApiException(response.statusCode, response.body);
       }
@@ -282,7 +269,7 @@ class PointsRepository {
     return defibrillator;
   }
 
-  Future<Defibrillator> updateDefibrillator(Defibrillator defibrillator) async {
+  Future<Defibrillator> updateDefibrillator(Defibrillator defibrillator, String lang) async {
     if (devMode) {
       return defibrillator;
     }
@@ -312,8 +299,7 @@ class PointsRepository {
         tag.attributes.where((attr) => attr.name.toString() == 'v').first.value
       ];
     }).toList();
-    var systemLang = PlatformDispatcher.instance.locale.languageCode;
-    var xml = defibrillator.toXml(changesetId, int.parse(oldVersion), systemLang,
+    var xml = defibrillator.toXml(changesetId, int.parse(oldVersion), lang,
         oldTags: oldTagsPairs);
     var putResponse = await http.put(
         Uri.parse(
@@ -381,7 +367,7 @@ class PointsRepository {
     return null;
   }
 
-  Future<Defibrillator?> getNode(int id) async {
+  Future<Defibrillator?> getNode(int id, String lang) async {
     try {
       var response = await http.get(
           Uri.parse('https://api.openstreetmap.org/api/0.6/node/$id.json'));
@@ -393,7 +379,11 @@ class PointsRepository {
           location: LatLng(element['lat'], element['lon']),
           id: id,
           access: tags['access'],
-          description: tags['defibrillator:location'],
+          locationDescription: tags['defibrillator:location:$lang'] ??
+              tags['defibrillator:location'],
+          description: tags['description:$lang'] ??
+              tags['description'] ??
+              tags['note'],
           indoor: tags['indoor'],
           level: tags['level'],
           openingHours: tags['opening_hours'],
@@ -468,4 +458,56 @@ class PointsRepository {
     await updateDefibrillators();
     return true;
   }
+}
+
+List<Defibrillator> _parseGeoJson(Map<String, dynamic> params) {
+  var contents = params['contents'] as String;
+  var lang = params['lang'] as String;
+
+  var idLabel = 'osm_id';
+  if (contents.contains('@osm_id')) {
+    idLabel = '@osm_id';
+  }
+
+  var jsonList = jsonDecode(contents)['features'] as List<dynamic>;
+  var systemLang = lang;
+  List<Defibrillator> defibrillators = [];
+
+  for (var row in jsonList) {
+    var id = row['properties'][idLabel];
+    var descriptions = Map<String, dynamic>.from(row['properties'])
+        .entries
+        .where((a) => a.key.startsWith('defibrillator:location'))
+        .toList();
+    var exactMatch = descriptions.where((a) => a.key == 'defibrillator:location:$systemLang');
+    String? finalDescription;
+    if (exactMatch.isNotEmpty) {
+      finalDescription = exactMatch.first.value;
+    } else {
+      var defaultMatch = descriptions.where((a) => a.key == 'defibrillator:location');
+      if (defaultMatch.isNotEmpty) {
+        finalDescription = defaultMatch.first.value;
+      } else {
+        descriptions.sort((a, b) => a.key.length.compareTo(b.key.length));
+        finalDescription = descriptions.firstOrNull?.value;
+      }
+    }
+    defibrillators.add(Defibrillator(
+        location: LatLng(
+            (row['geometry']['coordinates'][1] as num).toDouble(),
+            (row['geometry']['coordinates'][0] as num).toDouble()),
+        id: id as int,
+        locationDescription: finalDescription,
+        description: row['properties']['description:$systemLang']?.toString() ??
+            row['properties']['description']?.toString() ??
+            row['properties']['note']?.toString(),
+        indoor: row['properties']['indoor']?.toString(),
+        level: row['properties']['level']?.toString(),
+        operator: row['properties']['operator']?.toString(),
+        phone: row['properties']['phone']?.toString(),
+        openingHours: row['properties']['opening_hours']?.toString(),
+        access: row['properties']['access']?.toString(),
+        image: row['properties']['image']?.toString()));
+  }
+  return defibrillators;
 }

@@ -86,22 +86,22 @@ class _PendingChangesPageState extends State<PendingChangesPage> {
         const Icon(CupertinoIcons.trash_circle, color: Colors.red),
     };
 
-    final description = change.snapshot.description ?? '';
+    final locationDescription = change.snapshot.locationDescription ?? '';
     final level = change.snapshot.level;
     final indoor = change.snapshot.indoor;
     final operator = change.snapshot.operator;
     final openingHours = change.snapshot.openingHours;
     final phone = change.snapshot.phone;
-    final note = change.snapshot.note;
+    final description = change.snapshot.description;
     
     List<String> details = [];
-    if (description.isNotEmpty) details.add(description);
+    if (locationDescription.isNotEmpty) details.add(locationDescription);
     if (indoor != null && indoor == 'yes') details.add(appLocalizations.insideBuilding);
     if (level != null && level.isNotEmpty) details.add('${appLocalizations.level}: $level');
     if (operator != null && operator.isNotEmpty) details.add('${appLocalizations.operator}: $operator');
     if (openingHours != null && openingHours.isNotEmpty) details.add('${appLocalizations.openingHours}: $openingHours');
     if (phone != null && phone.isNotEmpty) details.add('${appLocalizations.contact}: $phone');
-    if (note != null && note.isNotEmpty) details.add('${appLocalizations.information}: $note');
+    if (description != null && description.isNotEmpty) details.add('${appLocalizations.information}: $description');
 
     final subtitleText = details.join(' • ');
 

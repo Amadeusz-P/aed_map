@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:aed_map/bloc/edit/edit_state.dart';
+import 'package:aed_map/bloc/settings/settings_cubit.dart';
 import 'package:aed_map/constants.dart';
 import 'package:aed_map/main.dart';
 import 'package:aed_map/models/aed.dart';
@@ -23,12 +24,16 @@ class EditCubit extends Cubit<EditState> {
     required this.geolocationRepository,
     required this.pendingChangesRepository,
     required this.userCreatedDefibrillatorRepository,
+    required this.settingsCubit,
   }) : super(EditReady(enabled: false, cursor: warsaw));
 
   final PointsRepository pointsRepository;
   final GeolocationRepository geolocationRepository;
   final PendingChangesRepository pendingChangesRepository;
   final UserCreatedDefibrillatorRepository userCreatedDefibrillatorRepository;
+  final SettingsCubit settingsCubit;
+
+  String get _lang => PointsRepository.effectiveLang(settingsCubit.state.languageCode);
 
   Future<void> loadPendingChanges() async {
     final pendingChanges = await pendingChangesRepository.fetch();
@@ -80,7 +85,7 @@ class EditCubit extends Cubit<EditState> {
         access: defibrillator.access ?? 'yes',
         indoor: defibrillator.indoor ?? 'no',
         level: defibrillator.level ?? '',
-        description: defibrillator.description ?? '',
+        description: defibrillator.locationDescription ?? '',
         originalImage: defibrillator.image,
         pendingChanges: state.pendingChanges));
   }
@@ -99,27 +104,27 @@ class EditCubit extends Cubit<EditState> {
         access: defibrillator.access ?? 'yes',
         indoor: defibrillator.indoor ?? 'no',
         level: defibrillator.level ?? '',
-        description: defibrillator.description ?? '',
+        description: defibrillator.locationDescription ?? '',
         originalImage: defibrillator.image,
         pendingChanges: state.pendingChanges));
   }
 
-  void editDescription(String value) {
+  void editLocationDescription(String value) {
     if (state is EditInProgress) {
       emit((state as EditInProgress).copyWith(
           description: value,
           defibrillator: (state as EditInProgress)
               .defibrillator
-              .copyWith(description: value)));
+              .copyWith(locationDescription: value)));
     }
   }
 
-  void editNote(String value) {
+  void editDescription(String value) {
     if (state is EditInProgress) {
       emit((state as EditInProgress).copyWith(
           defibrillator: (state as EditInProgress)
               .defibrillator
-              .copyWith(note: value)));
+              .copyWith(description: value)));
     }
   }
 
@@ -195,13 +200,14 @@ class EditCubit extends Cubit<EditState> {
       try {
         if (s.defibrillator.id == 0) {
           var saved =
-              await pointsRepository.insertDefibrillator(s.defibrillator);
+              await pointsRepository.insertDefibrillator(s.defibrillator, _lang);
           await userCreatedDefibrillatorRepository.add(saved.id);
           await pendingChangesRepository.register(PendingChange(
             type: PendingChangeType.add,
             defibrillatorId: saved.id,
             snapshot: saved.copyWith(),
             createdAt: DateTime.now(),
+            languageCode: _lang,
           ));
           analytics.event(name: saveInsertEvent);
           if (!Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -217,12 +223,13 @@ class EditCubit extends Cubit<EditState> {
           return saved;
         } else {
           var saved =
-              await pointsRepository.updateDefibrillator(s.defibrillator);
+              await pointsRepository.updateDefibrillator(s.defibrillator, _lang);
           await pendingChangesRepository.register(PendingChange(
             type: PendingChangeType.edit,
             defibrillatorId: saved.id,
             snapshot: saved.copyWith(),
             createdAt: DateTime.now(),
+            languageCode: _lang,
           ));
           analytics.event(name: saveUpdateEvent);
           if (!Platform.environment.containsKey('FLUTTER_TEST')) {

@@ -190,5 +190,9 @@
   "language": "Langue",
   "personalization": "Personnalisation",
   "searchLocationPlaceholder": "Rechercher une ville ou une adresse...",
+  "level": "Level",
+  "enterLevel": "Enter floor level",
+  "enterNote": "Enter note",
+  "aedDataLanguage": "AED data language",
   "searchNoResults": "Aucun résultat trouvé"
 }

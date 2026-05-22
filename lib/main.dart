@@ -101,6 +101,7 @@ class _AppState extends State<App> {
       geolocationRepository: geolocationRepository,
       pendingChangesRepository: pendingChangesRepository,
       userCreatedDefibrillatorRepository: userCreatedDefibrillatorRepository,
+      settingsCubit: settingsCubit,
     );
 
     pointsCubit = PointsCubit(
@@ -177,6 +178,9 @@ class _AppState extends State<App> {
           theme: CupertinoThemeData(
             brightness: brightness,
           ),
+          locale: settingsState.languageCode.isEmpty
+              ? null
+              : Locale(settingsState.languageCode),
           builder: (context, child) {
             // Override MediaQuery so that plugins relying on platformBrightness
             // (like settings_ui) see the brightness we want.

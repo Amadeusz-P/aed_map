@@ -133,7 +133,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editDefibrillator => 'Modifier le défibrillateur';
 
   @override
-  String get enterNote => 'Enter note / description';
+  String get enterNote => 'Enter note';
 
   @override
   String get information => 'Information';
@@ -470,10 +470,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get photoUploadFailed => 'Échec du téléchargement de la photo';
 
   @override
-  String get level => 'Floor (Level)';
+  String get level => 'Level';
 
   @override
-  String get enterLevel => 'Enter floor';
+  String get enterLevel => 'Enter floor level';
 
   @override
   String get theme => 'Thème';

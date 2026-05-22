@@ -15,7 +15,9 @@ class PendingChangesRepository {
   Future<void> register(PendingChange change) async {
     final prefs = await SharedPreferences.getInstance();
     var changes = await fetch();
-    changes.removeWhere((existing) => existing.defibrillatorId == change.defibrillatorId);
+    changes.removeWhere((existing) => 
+        existing.defibrillatorId == change.defibrillatorId &&
+        existing.languageCode == change.languageCode);
     changes.add(change);
     await prefs.setString(_storageKey, PendingChange.encodeList(changes));
   }

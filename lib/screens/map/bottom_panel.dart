@@ -257,7 +257,7 @@ class BottomPanel extends StatelessWidget {
                       const SizedBox(height: 8),
                       CrossFade<String>(
                           duration: const Duration(milliseconds: 200),
-                          value: state.selected.description.purge() ??
+                          value: state.selected.locationDescription.purge() ??
                               appLocalizations.noData,
                           builder: (context, v) {
                             return Column(
@@ -361,10 +361,10 @@ class BottomPanel extends StatelessWidget {
                               ),
                             );
                           }),
-                      if (state.selected.note != null && state.selected.note!.isNotEmpty) ...[
+                      if (state.selected.description != null && state.selected.description!.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         _ExpandableNote(
-                          text: state.selected.note!,
+                          text: state.selected.description!,
                           title: appLocalizations.information,
                           showMoreText: appLocalizations.showMore,
                           showLessText: appLocalizations.showLess,

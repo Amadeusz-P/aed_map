@@ -27,14 +27,27 @@ class PointsCubit extends Cubit<PointsState> {
     required this.editCubit,
     required this.settingsCubit,
   }) : super(PointsLoadInProgress()) {
+    _prevSettingsState = settingsCubit.state;
     _editSubscription = editCubit.stream
         .distinct((previous, current) =>
             previous.pendingChanges == current.pendingChanges)
         .listen((editState) => applyPendingChanges(editState.pendingChanges));
-    _settingsSubscription = settingsCubit.stream
-        .distinct((previous, current) => previous.themeMode == current.themeMode)
-        .listen((_) => rebuildMarkers());
+    _settingsSubscription = settingsCubit.stream.listen((newSettings) {
+      if (_prevSettingsState.themeMode != newSettings.themeMode) {
+        rebuildMarkers();
+      }
+      if (_prevSettingsState.languageCode != newSettings.languageCode) {
+        // Language changed — reload map data with new language
+        fetchForLocation(_lastFetchedCenter, isLanguageChange: true);
+      }
+      _prevSettingsState = newSettings;
+    });
   }
+
+  LatLng _lastFetchedCenter = const LatLng(0, 0);
+  late SettingsState _prevSettingsState;
+
+  String get _lang => PointsRepository.effectiveLang(settingsCubit.state.languageCode);
 
   final PointsRepository pointsRepository;
   final GeolocationRepository geolocationRepository;
@@ -52,8 +65,10 @@ class PointsCubit extends Cubit<PointsState> {
 
   Future<void> load() async {
     var position = (await geolocationRepository.locate()).location;
+    final loc = LatLng(position.latitude, position.longitude);
+    _lastFetchedCenter = loc;
     final (nearbyDefibrillators, defibrillatorsCount, closestToUser) = await pointsRepository
-        .loadDefibrillators(LatLng(position.latitude, position.longitude), LatLng(position.latitude, position.longitude));
+        .loadDefibrillators(loc, loc, _lang);
     await editCubit.reconcilePendingChanges(nearbyDefibrillators);
     final pendingChanges = editCubit.state.pendingChanges;
     final (mergedDefibrillators, pendingIds) =
@@ -76,9 +91,12 @@ class PointsCubit extends Cubit<PointsState> {
       emit(s.copyWith(refreshing: true));
     }
     await pointsRepository.updateDefibrillators();
+    pointsRepository.clearCache();
     var position = (await geolocationRepository.locate()).location;
+    final loc = LatLng(position.latitude, position.longitude);
+    _lastFetchedCenter = loc;
     final (nearbyDefibrillators, defibrillatorsCount, closestToUser) = await pointsRepository
-        .loadDefibrillators(LatLng(position.latitude, position.longitude), LatLng(position.latitude, position.longitude));
+        .loadDefibrillators(loc, loc, _lang);
     await editCubit.reconcilePendingChanges(nearbyDefibrillators);
     final pendingChanges = editCubit.state.pendingChanges;
     final (mergedDefibrillators, pendingIds) =
@@ -95,23 +113,30 @@ class PointsCubit extends Cubit<PointsState> {
         hash: generateRandomString(32)));
   }
 
-  Future<void> fetchForLocation(LatLng location) async {
+  Future<void> fetchForLocation(LatLng location, {bool isLanguageChange = false}) async {
     var s = state;
+    _lastFetchedCenter = location;
     if (s is PointsLoadSuccess) {
+      if (isLanguageChange) {
+        emit(s.copyWith(refreshing: true));
+      }
       var position = (await geolocationRepository.locate()).location;
       final (nearbyDefibrillators, defibrillatorsCount, closestToUser) = await pointsRepository
-          .loadDefibrillators(location, position);
+          .loadDefibrillators(location, position, _lang);
       await editCubit.reconcilePendingChanges(nearbyDefibrillators);
       final pendingChanges = editCubit.state.pendingChanges;
       final (mergedDefibrillators, pendingIds) =
           mergeWithPendingChanges(nearbyDefibrillators, pendingChanges, location);
       
-      // Keep the same selected marker if it still exists in the new list, or keep the old one anyway to preserve the 'nearest to GPS' AED
+      // Keep the same selected marker if it still exists in the new list.
+      // If not in the visible 250, look it up in the full cache (which was
+      // just reloaded with the new language). Only fall back to stale data
+      // as a last resort.
       Defibrillator newSelected;
       try {
         newSelected = mergedDefibrillators.firstWhere((d) => d.id == s.selected.id);
       } catch (_) {
-        newSelected = s.selected;
+        newSelected = pointsRepository.getFromCache(s.selected.id) ?? s.selected;
       }
 
       emit(s.copyWith(
@@ -126,13 +151,13 @@ class PointsCubit extends Cubit<PointsState> {
   }
 
   Future<void> applyPendingChanges(List<PendingChange> pendingChanges) async {
+    var position = (await geolocationRepository.locate()).location;
     var s = state;
     if (s is! PointsLoadSuccess) return;
-    final baseDefibrillators = s.defibrillators
-        .where((defibrillator) => !pendingChanges
-            .any((change) => change.defibrillatorId == defibrillator.id))
-        .toList();
-    var position = (await geolocationRepository.locate()).location;
+    
+    // Load fresh base defibrillators from cache instead of filtering the already-merged state.
+    // This avoids losing the original localized text and fixes race conditions.
+    final (baseDefibrillators, _, _) = await pointsRepository.loadDefibrillators(_lastFetchedCenter, position, _lang);
     final (mergedDefibrillators, pendingIds) =
         mergeWithPendingChanges(baseDefibrillators, pendingChanges, position);
     emit(s.copyWith(
@@ -154,15 +179,49 @@ class PointsCubit extends Cubit<PointsState> {
         .toList();
 
     final pendingIds = <int>{};
+    
+    // Group pending changes by defibrillatorId
+    final changesById = <int, List<PendingChange>>{};
     for (final change in pendingChanges) {
       if (change.type == PendingChangeType.delete) continue;
+      changesById.putIfAbsent(change.defibrillatorId, () => []).add(change);
       pendingIds.add(change.defibrillatorId);
-      merged.removeWhere(
-          (defibrillator) => defibrillator.id == change.defibrillatorId);
-      var snapshot = change.snapshot;
+    }
+    
+    for (final entry in changesById.entries) {
+      final id = entry.key;
+      final group = entry.value;
+      
+      // Sort by createdAt so the latest physical attributes win
+      group.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      
+      // Find the base node to potentially preserve localized text
+      final baseDefibrillator = merged.firstWhere(
+          (d) => d.id == id,
+          orElse: () => group.last.snapshot);
+
+      merged.removeWhere((defibrillator) => defibrillator.id == id);
+          
+      var finalSnapshot = baseDefibrillator;
+      
+      for (final change in group) {
+        var snapshot = change.snapshot;
+        if (change.languageCode != null && change.languageCode != _lang) {
+          // The pending change was created in a different language!
+          // We apply physical changes (access, phone, indoor, etc.) from the snapshot,
+          // but we MUST PRESERVE the localized texts (description, location) that
+          // we accumulated so far (either from baseDefibrillator or a previous change in the current language).
+          snapshot = snapshot.copyWith(
+            locationDescription: finalSnapshot.locationDescription,
+            description: finalSnapshot.description,
+          );
+        }
+        finalSnapshot = snapshot;
+      }
+      
       const Distance distanceCalculator = Distance(calculator: Haversine());
-      snapshot.distance = distanceCalculator(position, snapshot.location).ceil();
-      merged.add(snapshot);
+      finalSnapshot.distance = distanceCalculator(position, finalSnapshot.location).ceil();
+      merged.add(finalSnapshot);
     }
     merged.sort((a, b) => (a.distance ?? 999999999).compareTo(b.distance ?? 999999999));
 
